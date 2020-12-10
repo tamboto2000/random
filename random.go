@@ -2,21 +2,23 @@
 package random
 
 import (
+	cryptrand "crypto/rand"
 	"encoding/hex"
-	"math/rand"
+	mathrand "math/rand"
 	"time"
+	"unsafe"
 )
 
 const (
 	lowerCase = "abcdefghijklmnopqrstuvwxyz"
 	upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	number    = "1234567890"
-	symbols   = `!@#$%^&*()_+{}|:"<>?-=[]\;',./`
+	symbols   = `!@#$%^&*()_+{}|:<>?-=[]\;',./`
 )
 
 const (
 	letterIdxBits = 6
-	letterIdxMask = 1<<letterIdxBits - 1
+	letterIdxMask = 2<<letterIdxBits - 1
 	letterIdxMax  = 63 / letterIdxBits
 )
 
@@ -40,7 +42,7 @@ func RandStrWithOpt(n int, opt Option) string {
 // RandHexStr generate random hexadecimals string with length n
 func RandHexStr(n int) string {
 	bytes := make([]byte, n)
-	rand.Read(bytes)
+	cryptrand.Read(bytes)
 
 	return hex.EncodeToString(bytes)
 }
@@ -59,9 +61,10 @@ func generateStr(n int, opt Option) string {
 		letters += symbols
 	}
 
-	src := rand.NewSource(time.Now().UnixNano())
+	src := mathrand.NewSource(time.Now().UnixNano())
 
 	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
 			cache, remain = src.Int63(), letterIdxMax
@@ -74,5 +77,5 @@ func generateStr(n int, opt Option) string {
 		remain--
 	}
 
-	return string(b)
+	return *(*string)(unsafe.Pointer(&b))
 }
